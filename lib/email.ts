@@ -1,42 +1,40 @@
 import nodemailer from 'nodemailer';
+import { substituteVariables } from './email-utils';
 
 export interface SmtpConfig {
-    host: string;
-    port: number;
-    username: string;
-    password: string;
-    from_name: string;
-    from_email: string;
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  from_name: string;
+  from_email: string;
 }
 
 export interface StatusEmailPayload {
-    to: string;
-    applicantName: string;
-    program: string;
-    newStatus: string;
-    message: string;
-    templateHtml?: string;
-    templateSubject?: string;
-    smtp?: SmtpConfig;        // passed from API route (loaded from DB)
+  to: string;
+  applicantName: string;
+  program: string;
+  newStatus: string;
+  message: string;
+  templateHtml?: string;
+  templateSubject?: string;
+  smtp?: SmtpConfig;        // passed from API route (loaded from DB)
 }
 
 const STATUS_LABELS: Record<string, string> = {
-    pending: 'pending',
-    under_review: 'under review',
-    interview_scheduled: 'interview scheduled',
-    accepted: 'accepted 🎉',
-    rejected: 'not selected',
+  pending: 'pending',
+  under_review: 'under review',
+  interview_scheduled: 'interview scheduled',
+  accepted: 'accepted 🎉',
+  rejected: 'not selected',
 };
 
-export function substituteVariables(template: string, vars: Record<string, string>): string {
-    return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
-}
 
 function buildDefaultHtml(payload: StatusEmailPayload): string {
-    const { applicantName, program, newStatus, message } = payload;
-    const statusLabel = STATUS_LABELS[newStatus] || newStatus;
+  const { applicantName, program, newStatus, message } = payload;
+  const statusLabel = STATUS_LABELS[newStatus] || newStatus;
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"/><title>Application Update</title></head>
 <body style="margin:0;padding:0;background:#E8E6D9;font-family:'DM Sans',Arial,sans-serif;">
@@ -76,48 +74,48 @@ function buildDefaultHtml(payload: StatusEmailPayload): string {
 }
 
 function createTransporter(smtp?: SmtpConfig) {
-    // Use DB-loaded SMTP config if provided, otherwise fall back to .env
-    const host = smtp?.host || process.env.EMAIL_HOST || 'smtp.mailersend.net';
-    const port = smtp?.port || Number(process.env.EMAIL_PORT) || 587;
-    const user = smtp?.username || process.env.EMAIL_USER || '';
-    const pass = smtp?.password || process.env.EMAIL_PASS || '';
+  // Use DB-loaded SMTP config if provided, otherwise fall back to .env
+  const host = smtp?.host || process.env.EMAIL_HOST || 'smtp.mailersend.net';
+  const port = smtp?.port || Number(process.env.EMAIL_PORT) || 587;
+  const user = smtp?.username || process.env.EMAIL_USER || '';
+  const pass = smtp?.password || process.env.EMAIL_PASS || '';
 
-    return nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        requireTLS: port === 587,
-        auth: { user, pass },
-    });
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    requireTLS: port === 587,
+    auth: { user, pass },
+  });
 }
 
 export async function sendStatusEmail(payload: StatusEmailPayload) {
-    const { to, applicantName, program, newStatus, message, templateHtml, templateSubject, smtp } = payload;
+  const { to, applicantName, program, newStatus, message, templateHtml, templateSubject, smtp } = payload;
 
-    const nameParts = applicantName.trim().split(/\s+/);
-    const firstName = nameParts[0] || applicantName;
-    const lastName = nameParts.slice(1).join(' ') || '';
-    const statusLabel = STATUS_LABELS[newStatus] || newStatus;
+  const nameParts = applicantName.trim().split(/\s+/);
+  const firstName = nameParts[0] || applicantName;
+  const lastName = nameParts.slice(1).join(' ') || '';
+  const statusLabel = STATUS_LABELS[newStatus] || newStatus;
 
-    const vars: Record<string, string> = {
-        username: firstName.toLowerCase(),
-        email: to,
-        full_name: applicantName,
-        first_name: firstName,
-        last_name: lastName,
-        status: statusLabel,
-        program,
-        message: message || '',
-    };
+  const vars: Record<string, string> = {
+    username: firstName.toLowerCase(),
+    email: to,
+    full_name: applicantName,
+    first_name: firstName,
+    last_name: lastName,
+    status: statusLabel,
+    program,
+    message: message || '',
+  };
 
-    const html = templateHtml ? substituteVariables(templateHtml, vars) : buildDefaultHtml(payload);
-    const subject = templateSubject ? substituteVariables(templateSubject, vars) : `update on your application — ${program}`;
+  const html = templateHtml ? substituteVariables(templateHtml, vars) : buildDefaultHtml(payload);
+  const subject = templateSubject ? substituteVariables(templateSubject, vars) : `update on your application — ${program}`;
 
-    const fromName = smtp?.from_name || 'Admissions Team';
-    const fromEmail = smtp?.from_email || process.env.EMAIL_USER || '';
-    const from = fromEmail ? `"${fromName}" <${fromEmail}>` : fromName;
+  const fromName = smtp?.from_name || 'Admissions Team';
+  const fromEmail = smtp?.from_email || process.env.EMAIL_USER || '';
+  const from = fromEmail ? `"${fromName}" <${fromEmail}>` : fromName;
 
-    const transporter = createTransporter(smtp);
+  const transporter = createTransporter(smtp);
 
-    await transporter.sendMail({ from, to, subject, html });
+  await transporter.sendMail({ from, to, subject, html });
 }

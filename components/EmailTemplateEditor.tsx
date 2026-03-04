@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import toast from 'react-hot-toast';
 import NextLink from 'next/link';
-import { substituteVariables } from '@/lib/email';
+import { substituteVariables } from '@/lib/email-utils';
 
 interface Template {
     id?: string;
