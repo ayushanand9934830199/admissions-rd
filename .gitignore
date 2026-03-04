@@ -1,0 +1,25 @@
+# B.L.A.S.T. Project — .gitignore
+
+# Secrets — NEVER commit
+.env
+
+# Temporary intermediates — ephemeral, never committed
+.tmp/
+*.tmp
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Node build files
+node_modules/
+.next/
