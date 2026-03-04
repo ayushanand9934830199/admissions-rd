@@ -17,7 +17,7 @@ export default async function AdminUsersPage() {
 
     return (
         <div className="page-wrapper">
-            <Navbar userName={profile.full_name} role="admin" />
+            <Navbar userName={profile.full_name} role={profile.role} />
             <AdminUsersClient users={users || []} currentUserId={user.id} />
         </div>
     );

@@ -18,7 +18,7 @@ export default async function EmailTemplatesPage() {
 
     return (
         <div className="page-wrapper">
-            <Navbar userName={profile.full_name} role="admin" />
+            <Navbar userName={profile.full_name} role={profile.role} />
             <main className="container" style={{ padding: '40px 24px' }}>
                 <div className="page-header">
                     <div>

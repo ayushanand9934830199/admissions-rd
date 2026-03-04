@@ -18,7 +18,7 @@ export default async function SmtpSettingsPage() {
 
     return (
         <div className="page-wrapper">
-            <Navbar userName={profile.full_name} role="admin" />
+            <Navbar userName={profile.full_name} role={profile.role} />
             <SmtpSettingsClient smtp={smtp} />
         </div>
     );
