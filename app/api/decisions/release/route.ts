@@ -65,8 +65,6 @@ export async function POST(request: Request) {
             if (t) { templateHtml = t.body_html; templateSubject = t.subject; }
         }
 
-        // Load SMTP
-        const { data: smtp } = await supabase.from('smtp_settings').select('*').eq('id', 1).single();
 
         let released = 0;
         const errors: string[] = [];
@@ -103,7 +101,6 @@ export async function POST(request: Request) {
                     message,
                     templateHtml,
                     templateSubject,
-                    smtp: smtp ?? undefined,
                 });
 
                 released++;

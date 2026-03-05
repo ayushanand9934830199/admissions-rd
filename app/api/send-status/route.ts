@@ -40,9 +40,6 @@ export async function POST(request: Request) {
             if (t) { templateHtml = t.body_html; templateSubject = t.subject; }
         }
 
-        // Load SMTP settings from DB
-        const { data: smtpFromDb } = await supabase.from('smtp_settings').select('*').eq('id', 1).single();
-
         await sendStatusEmail({
             to: app.email,
             applicantName: app.full_name,
@@ -51,7 +48,6 @@ export async function POST(request: Request) {
             message,
             templateHtml,
             templateSubject,
-            smtp: smtpFromDb ?? undefined,
         });
 
         return NextResponse.json({ success: true });

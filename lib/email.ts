@@ -1,14 +1,7 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { substituteVariables } from './email-utils';
 
-export interface SmtpConfig {
-  host: string;
-  port: number;
-  username: string;
-  password: string;
-  from_name: string;
-  from_email: string;
-}
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export interface StatusEmailPayload {
   to: string;
@@ -18,7 +11,6 @@ export interface StatusEmailPayload {
   message: string;
   templateHtml?: string;
   templateSubject?: string;
-  smtp?: SmtpConfig;        // passed from API route (loaded from DB)
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -26,9 +18,9 @@ const STATUS_LABELS: Record<string, string> = {
   under_review: 'under review',
   interview_scheduled: 'interview scheduled',
   accepted: 'accepted 🎉',
+  waitlisted: 'waitlisted',
   rejected: 'not selected',
 };
-
 
 function buildDefaultHtml(payload: StatusEmailPayload): string {
   const { applicantName, program, newStatus, message } = payload;
@@ -73,24 +65,8 @@ function buildDefaultHtml(payload: StatusEmailPayload): string {
 </html>`;
 }
 
-function createTransporter(smtp?: SmtpConfig) {
-  // Use DB-loaded SMTP config if provided, otherwise fall back to .env
-  const host = smtp?.host || process.env.EMAIL_HOST || 'smtp.mailersend.net';
-  const port = smtp?.port || Number(process.env.EMAIL_PORT) || 587;
-  const user = smtp?.username || process.env.EMAIL_USER || '';
-  const pass = smtp?.password || process.env.EMAIL_PASS || '';
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    requireTLS: port === 587,
-    auth: { user, pass },
-  });
-}
-
 export async function sendStatusEmail(payload: StatusEmailPayload) {
-  const { to, applicantName, program, newStatus, message, templateHtml, templateSubject, smtp } = payload;
+  const { to, applicantName, program, newStatus, message, templateHtml, templateSubject } = payload;
 
   const nameParts = applicantName.trim().split(/\s+/);
   const firstName = nameParts[0] || applicantName;
@@ -109,13 +85,18 @@ export async function sendStatusEmail(payload: StatusEmailPayload) {
   };
 
   const html = templateHtml ? substituteVariables(templateHtml, vars) : buildDefaultHtml(payload);
-  const subject = templateSubject ? substituteVariables(templateSubject, vars) : `update on your application — ${program}`;
+  const subject = templateSubject
+    ? substituteVariables(templateSubject, vars)
+    : `update on your application — ${program}`;
 
-  const fromName = smtp?.from_name || 'Admissions Team';
-  const fromEmail = smtp?.from_email || process.env.EMAIL_USER || '';
-  const from = fromEmail ? `"${fromName}" <${fromEmail}>` : fromName;
+  const { error } = await resend.emails.send({
+    from: 'Admissions Team <admissions@restlessdreamers.in>',
+    to,
+    subject,
+    html,
+  });
 
-  const transporter = createTransporter(smtp);
-
-  await transporter.sendMail({ from, to, subject, html });
+  if (error) {
+    throw new Error(`Resend error: ${error.message}`);
+  }
 }

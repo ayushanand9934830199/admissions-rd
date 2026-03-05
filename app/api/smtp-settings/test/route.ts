@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 export async function POST() {
     const supabase = await createClient();
@@ -9,19 +9,14 @@ export async function POST() {
     const { data: p } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     if (!p || p.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const { data: smtp } = await supabase.from('smtp_settings').select('*').eq('id', 1).single();
-    if (!smtp) return NextResponse.json({ error: 'No SMTP settings found' }, { status: 400 });
-
-    const transporter = nodemailer.createTransport({
-        host: smtp.host,
-        port: smtp.port,
-        secure: smtp.port === 465,
-        requireTLS: smtp.port === 587,
-        auth: { user: smtp.username, pass: smtp.password },
-    });
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) return NextResponse.json({ ok: false, error: 'RESEND_API_KEY is not set' }, { status: 400 });
 
     try {
-        await transporter.verify();
+        // Validate the key by listing domains — a lightweight read-only call
+        const resend = new Resend(apiKey);
+        const { error } = await resend.domains.list();
+        if (error) throw new Error(error.message);
         return NextResponse.json({ ok: true });
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Unknown error';
