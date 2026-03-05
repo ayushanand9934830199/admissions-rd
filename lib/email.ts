@@ -91,8 +91,10 @@ export async function sendStatusEmail(payload: StatusEmailPayload) {
   if (!apiKey) throw new Error('RESEND_API_KEY environment variable is not set');
   const resend = new Resend(apiKey);
 
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
   const { error } = await resend.emails.send({
-    from: 'Admissions Team <admissions@restlessdreamers.in>',
+    from: `Admissions Team <${fromEmail}>`,
     to,
     subject,
     html,
