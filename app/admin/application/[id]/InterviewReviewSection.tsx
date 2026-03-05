@@ -77,18 +77,17 @@ export default function InterviewReviewSection({ invitations, userRole }: Props)
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1.2fr) 1fr', gap: 0 }}>
-                                    <div style={{ background: '#000', borderRight: '1px solid var(--border)' }}>
+                                    <div style={{ background: '#000', borderRight: '1px solid var(--border)', position: 'relative', height: 320 }}>
                                         {sub.drive_file_url ? (
-                                            <iframe
-                                                src={sub.drive_file_url.replace('/view', '/preview')}
-                                                width="100%"
-                                                height="320"
-                                                allow="autoplay"
-                                                style={{ border: 'none', display: 'block' }}
+                                            <video
+                                                src={sub.drive_file_url}
+                                                controls
+                                                style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain' }}
+                                                poster="/video-thumbnail.png" // Optional
                                             />
                                         ) : (
-                                            <div style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
-                                                Video still processing on Google Drive...
+                                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontSize: 13 }}>
+                                                Video not available
                                             </div>
                                         )}
                                     </div>

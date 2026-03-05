@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { driveAuth } from '@/lib/google-drive';
+import { s3Client, R2_BUCKET } from '@/lib/r2';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export async function POST(req: Request) {
     try {
@@ -23,35 +25,19 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Forbidden or expired' }, { status: 403 });
         }
 
-        // 2. Generate a Resumable Upload URL from Google Drive API
-        const accessToken = await driveAuth.getAccessToken();
+        // Generate a Pre-signed URL for Cloudflare R2
+        const key = `interviews/${invitationId}/${questionId}-${Date.now()}.webm`;
 
-        const metadata = {
-            name: fileName || `submission_${invitationId}_${questionId}.webm`,
-            mimeType: mimeType || 'video/webm'
-        };
-
-        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-                'X-Upload-Content-Type': metadata.mimeType
-            },
-            body: JSON.stringify(metadata)
+        const command = new PutObjectCommand({
+            Bucket: R2_BUCKET,
+            Key: key,
+            ContentType: mimeType || 'video/webm',
         });
 
-        if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`Google API Error: ${errText}`);
-        }
+        // URL expires in 1 hour
+        const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
 
-        const uploadUrl = res.headers.get('location');
-        if (!uploadUrl) {
-            throw new Error('Failed to retrieve resumable upload URL from Google');
-        }
-
-        return NextResponse.json({ uploadUrl });
+        return NextResponse.json({ uploadUrl, key });
     } catch (error: any) {
         console.error('Upload URL Error:', error);
         return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });

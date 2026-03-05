@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { drive } from '@/lib/google-drive';
+import { R2_PUBLIC_URL } from '@/lib/r2';
 
 export async function POST(req: Request) {
     try {
-        const { invitationId, questionId, fileId } = await req.json();
+        const { invitationId, questionId, fileId, key } = await req.json();
 
-        if (!invitationId || !questionId || !fileId) {
+        // fileId comes from Google Drive logic, 'key' is the new R2 field
+        const finalKey = key || fileId;
+
+        if (!invitationId || !questionId || !finalKey) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
@@ -23,32 +26,14 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        // Grant anyone with link read access to the file so admins can view it
-        try {
-            await drive.permissions.create({
-                fileId: fileId,
-                requestBody: { role: 'reader', type: 'anyone' },
-            });
-        } catch (authErr) {
-            console.error('Failed to change drive permissions:', authErr);
-            // Non-fatal, admin might still have domain access or we can handle it later
-        }
-
-        // Try getting the WebViewLink
-        let fileUrl = '';
-        try {
-            const driveFile = await drive.files.get({ fileId, fields: 'webViewLink' });
-            fileUrl = driveFile.data.webViewLink || '';
-        } catch (e) {
-            console.error('Failed to get view link', e);
-        }
+        const fileUrl = `${R2_PUBLIC_URL}/${finalKey}`;
 
         const { error: submitError } = await supabase
             .from('video_submissions')
             .insert({
                 invitation_id: invitationId,
                 question_id: questionId,
-                drive_file_id: fileId,
+                drive_file_id: finalKey, // We'll reuse the same column for simplicity or can rename it later
                 drive_file_url: fileUrl
             });
 

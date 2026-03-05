@@ -105,7 +105,7 @@ export default function InterviewRecorder({ invitationId, questions }: Props) {
         const blob = new Blob(chunksRef.current, { type: 'video/webm' });
 
         try {
-            // 1. Get Resumable Upload URL
+            // 1. Get Pre-signed Upload URL for Cloudflare R2
             const urlRes = await fetch('/api/interviews/upload-url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -115,24 +115,28 @@ export default function InterviewRecorder({ invitationId, questions }: Props) {
                     mimeType: blob.type
                 })
             });
-            const { uploadUrl, error: urlErr } = await urlRes.json();
+            const { uploadUrl, key, error: urlErr } = await urlRes.json();
             if (urlErr) throw new Error(urlErr);
 
-            // 2. PUT Blob to Google Drive directly from Browser
+            // 2. PUT Blob to R2 directly from Browser
             const uploadRes = await fetch(uploadUrl, {
                 method: 'PUT',
-                body: blob
+                body: blob,
+                headers: {
+                    'Content-Type': blob.type
+                }
             });
-            if (!uploadRes.ok) throw new Error('Failed to upload video chunks to Drive');
-
-            const driveData = await uploadRes.json();
-            const fileId = driveData.id;
+            if (!uploadRes.ok) throw new Error('Failed to upload video to storage');
 
             // 3. Mark in DB
             const submitRes = await fetch('/api/interviews/submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ invitationId, questionId: currentQuestion.id, fileId })
+                body: JSON.stringify({
+                    invitationId,
+                    questionId: currentQuestion.id,
+                    key
+                })
             });
 
             if (!submitRes.ok) throw new Error('Failed to save submission');
