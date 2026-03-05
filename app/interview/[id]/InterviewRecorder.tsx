@@ -78,17 +78,32 @@ export default function InterviewRecorder({ invitationId, questions }: Props) {
         }
 
         const stream = videoRef.current.srcObject as MediaStream;
-        const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+
+        // Find supported mime type
+        const types = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
+        const supportedType = types.find(type => MediaRecorder.isTypeSupported(type));
+
+        if (!supportedType) {
+            toast.error('No supported video recording format found in your browser.');
+            return;
+        }
+
+        const mediaRecorder = new MediaRecorder(stream, { mimeType: supportedType });
         mediaRecorderRef.current = mediaRecorder;
         chunksRef.current = [];
 
         mediaRecorder.ondataavailable = e => {
-            if (e.data.size > 0) chunksRef.current.push(e.data);
+            if (e.data && e.data.size > 0) {
+                chunksRef.current.push(e.data);
+            }
         };
 
-        mediaRecorder.onstop = handleUpload;
+        mediaRecorder.onstop = () => {
+            // small delay to ensure all chunks are processed
+            setTimeout(handleUpload, 200);
+        };
 
-        // request data every second
+        // request data every second to keep chunks flowing
         mediaRecorder.start(1000);
         setStatus('recording');
         setTimeRemaining(currentQuestion.timeLimit);
@@ -96,13 +111,28 @@ export default function InterviewRecorder({ invitationId, questions }: Props) {
 
     const stopRecording = () => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.requestData(); // Get any final data
             mediaRecorderRef.current.stop();
         }
     };
 
     const handleUpload = async () => {
+        if (chunksRef.current.length === 0) {
+            console.error('No video data captured.');
+            toast.error('Recording failed to capture data. Please try again.');
+            setStatus('idle');
+            return;
+        }
+
         setStatus('uploading');
-        const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+        // Use the actual mimeType from the mediaRecorder if available
+        const blob = new Blob(chunksRef.current, { type: mediaRecorderRef.current?.mimeType || 'video/webm' });
+
+        if (blob.size === 0) {
+            toast.error('Recorded video is empty. Please try again.');
+            setStatus('idle');
+            return;
+        }
 
         try {
             // 1. Get Pre-signed Upload URL for Cloudflare R2
@@ -193,6 +223,7 @@ export default function InterviewRecorder({ invitationId, questions }: Props) {
                 {status === 'recording' && (
                     <div style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(0,0,0,0.6)', padding: '6px 12px', borderRadius: 999, display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ width: 10, height: 10, background: '#ef4444', borderRadius: '50%', animation: 'pulse-red 1.5s infinite' }} />
+                        <span style={{ color: '#fff', fontSize: 12, fontWeight: 700, marginRight: 4 }}>REC</span>
                         <span style={{ fontFamily: 'monospace', fontSize: 16, fontWeight: 700, color: '#fff' }}>
                             {formatTime(timeRemaining)}
                         </span>
@@ -228,7 +259,7 @@ export default function InterviewRecorder({ invitationId, questions }: Props) {
 
                 {status === 'recording' && (
                     <button className="btn btn-secondary" onClick={stopRecording} style={{ width: '100%', padding: '14px', background: '#ef4444', color: '#fff', borderColor: '#ef4444' }}>
-                        Stop & Submit Answer
+                        End Recording & Submit Answer
                     </button>
                 )}
             </div>

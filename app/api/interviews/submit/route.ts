@@ -14,16 +14,36 @@ export async function POST(req: Request) {
         }
 
         const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
         // 1. Validate the invitation is valid
         const { data: invite } = await supabase
             .from('interview_invitations')
-            .select('id, status')
+            .select(`
+                id, 
+                status,
+                applications (applicant_id)
+            `)
             .eq('id', invitationId)
             .single();
 
         if (!invite) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        const apps: any = invite.applications;
+        const applicantId = Array.isArray(apps) ? apps[0]?.applicant_id : apps?.applicant_id;
+
+        if (applicantId !== user.id) {
+            // Allow admin
+            const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+            if (!profile || !['admin', 'admissions_head', 'admissions_associate'].includes(profile.role)) {
+                return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+            }
         }
 
         const fileUrl = `${R2_PUBLIC_URL}/${finalKey}`;

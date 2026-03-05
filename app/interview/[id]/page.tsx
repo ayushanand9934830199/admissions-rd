@@ -1,19 +1,24 @@
 import { createClient } from '@/lib/supabase/server';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import InterviewRecorder from './InterviewRecorder';
 
 export default async function InterviewPortalPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-
-    // We query the admin service role because the candidate is not logged in here
     const supabase = await createClient();
 
-    // Get the invitation details. If it's expired or completed, handle accordingly.
+    // 1. Check Authentication
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        redirect(`/login?returnTo=/interview/${id}`);
+    }
+
+    // 2. Get the invitation details. 
     const { data: invitation } = await supabase
         .from('interview_invitations')
         .select(`
             *,
             applications (
+                applicant_id,
                 full_name,
                 program
             )
@@ -25,6 +30,22 @@ export default async function InterviewPortalPage({ params }: { params: Promise<
 
     const apps: any = invitation.applications;
     const application = Array.isArray(apps) ? apps[0] : apps;
+
+    // 3. Ensure the user is the applicant who owns this invitation
+    // Or an admin/staff (for previewing)
+    if (application.applicant_id !== user.id) {
+        // Check if user is admin
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+        if (!profile || !['admin', 'admissions_head', 'admissions_associate'].includes(profile.role)) {
+            return (
+                <div className="page-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+                    <div className="card" style={{ maxWidth: 500, textAlign: 'center', padding: 32 }}>
+                        <p>Unauthorized: This interview link is not assigned to your account.</p>
+                    </div>
+                </div>
+            );
+        }
+    }
 
     if (invitation.status === 'completed') {
         return (
