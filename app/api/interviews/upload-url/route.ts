@@ -10,30 +10,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        // 1. Verify the invitation belongs to the logged in user
+        // Unauthenticated access allowed: the unguessable UUID serves as the secure token
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        // Technically RLS handles most of this, but we specifically need to ensure the candidate owns this invite 
-        // to prevent uploading garbage files on behalf of someone else.
         const { data: invite } = await supabase
             .from('interview_invitations')
-            .select(`
-                id,
-                applications!inner ( applicant_id )
-            `)
+            .select('id, status')
             .eq('id', invitationId)
             .single();
 
-        const apps: any = invite?.applications;
-        const applicantId = Array.isArray(apps) ? apps[0]?.applicant_id : apps?.applicant_id;
-
-        if (!invite || applicantId !== user.id) {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        if (!invite || invite.status !== 'pending') {
+            return NextResponse.json({ error: 'Forbidden or expired' }, { status: 403 });
         }
 
         // 2. Generate a Resumable Upload URL from Google Drive API

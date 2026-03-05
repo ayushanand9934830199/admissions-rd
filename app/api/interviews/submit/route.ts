@@ -11,9 +11,17 @@ export async function POST(req: Request) {
         }
 
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        // 1. Validate the invitation is valid
+        const { data: invite } = await supabase
+            .from('interview_invitations')
+            .select('id, status')
+            .eq('id', invitationId)
+            .single();
+
+        if (!invite) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
 
         // Grant anyone with link read access to the file so admins can view it
         try {
