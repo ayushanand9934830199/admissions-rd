@@ -1,7 +1,11 @@
 import { google } from 'googleapis';
 
 const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+let privateKey = process.env.GOOGLE_PRIVATE_KEY || '';
+if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+    privateKey = privateKey.slice(1, -1);
+}
+privateKey = privateKey.replace(/\\n/g, '\n');
 
 if (!clientEmail || !privateKey) {
     console.warn('⚠️ Google Drive API credentials missing in environment variables. Video uploads will fail.');
