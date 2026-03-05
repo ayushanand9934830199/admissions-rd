@@ -1,8 +1,6 @@
 import { Resend } from 'resend';
 import { substituteVariables } from './email-utils';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export interface StatusEmailPayload {
   to: string;
   applicantName: string;
@@ -88,6 +86,10 @@ export async function sendStatusEmail(payload: StatusEmailPayload) {
   const subject = templateSubject
     ? substituteVariables(templateSubject, vars)
     : `update on your application — ${program}`;
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error('RESEND_API_KEY environment variable is not set');
+  const resend = new Resend(apiKey);
 
   const { error } = await resend.emails.send({
     from: 'Admissions Team <admissions@restlessdreamers.in>',
