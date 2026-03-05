@@ -30,29 +30,35 @@ export default function InterviewRecorder({ invitationId, questions }: Props) {
 
     const currentQuestion = questions[currentIndex];
 
-    // Request camera
+    const streamRef = useRef<MediaStream | null>(null);
+
+    // Request camera on mount
     useEffect(() => {
-        let stream: MediaStream | null = null;
         async function setupCamera() {
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 1280, height: 720 },
+                    audio: true
+                });
+                streamRef.current = stream;
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
                     videoRef.current.muted = true; // prevent feedback
                 }
+                console.log('🎥 Camera stream initialized');
             } catch (err) {
                 console.error('Camera access denied', err);
                 toast.error('Please allow camera and microphone access to continue.');
             }
         }
-        if (status === 'idle') {
-            setupCamera();
-        }
+
+        setupCamera();
 
         return () => {
-            stream?.getTracks().forEach(t => t.stop());
+            console.log('🧹 Cleaning up camera stream');
+            streamRef.current?.getTracks().forEach(t => t.stop());
         };
-    }, [status]);
+    }, []);
 
     useEffect(() => {
         let timerId: NodeJS.Timeout;
