@@ -30,6 +30,27 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
         .select('id, name')
         .order('created_at', { ascending: true });
 
+    const { data: invitations } = await supabase
+        .from('interview_invitations')
+        .select(`
+            *,
+            interview_templates (
+                title
+            ),
+            video_submissions (
+                *,
+                interview_questions (
+                    question_text,
+                    order
+                ),
+                interview_feedback (
+                    *
+                )
+            )
+        `)
+        .eq('application_id', id)
+        .order('invited_at', { ascending: false });
+
     return (
         <div className="page-wrapper">
             <Navbar userName={profile.full_name} role={profile.role} />
@@ -52,6 +73,7 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
                     statusHistory={statusHistory || []}
                     userRole={profile.role}
                     templates={templates || []}
+                    invitations={invitations || []}
                 />
             </main>
         </div>

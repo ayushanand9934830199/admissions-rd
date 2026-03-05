@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import StatusUpdateModal from '@/components/StatusUpdateModal';
+import InterviewInviteModal from './InterviewInviteModal';
+import InterviewReviewSection from './InterviewReviewSection';
 import toast from 'react-hot-toast';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -49,17 +51,34 @@ interface Application {
 interface StatusUpdate { id: string; old_status: string; new_status: string; message: string; sent_at: string; }
 interface Template { id: string; name: string; }
 
+export interface Invitation {
+    id: string;
+    status: string;
+    invited_at: string;
+    interview_templates: { title: string };
+    video_submissions: Array<{
+        id: string;
+        drive_file_url: string;
+        submitted_at: string;
+        question_id: string;
+        interview_questions: { question_text: string; order: number };
+        interview_feedback: Array<{ id: string; feedback_text: string; rating: number; reviewer_id: string }>;
+    }>;
+}
+
 interface Props {
     application: Application;
     statusHistory: StatusUpdate[];
     userRole: string;
     templates: Template[];
+    invitations: Invitation[];
 }
 
-export default function ApplicationDetailClient({ application: initialApp, statusHistory: initialHistory, userRole, templates }: Props) {
+export default function ApplicationDetailClient({ application: initialApp, statusHistory: initialHistory, userRole, templates, invitations }: Props) {
     const [app, setApp] = useState(initialApp);
     const [history] = useState(initialHistory);
     const [modalOpen, setModalOpen] = useState(false);
+    const [inviteModalOpen, setInviteModalOpen] = useState(false);
     const [decisionLoading, setDecisionLoading] = useState<string | null>(null);
     const [notes, setNotes] = useState(app.decision_notes || '');
     const [showNotes, setShowNotes] = useState(false);
@@ -112,10 +131,10 @@ export default function ApplicationDetailClient({ application: initialApp, statu
                     </span>
                 )}
                 <div style={{ flex: 1 }} />
-                {app.status === 'interview_scheduled' && (
-                    <a href="https://www.restlessdreamers.in/vid-int" target="_blank" rel="noopener noreferrer" className="btn btn-video">
-                        🎥 launch video interview
-                    </a>
+                {isStaff && app.status !== 'rejected' && (
+                    <button className="btn btn-ghost" onClick={() => setInviteModalOpen(true)}>
+                        🎥 send interview invite
+                    </button>
                 )}
                 {canSendStatusUpdate && (
                     <button className="btn btn-secondary" onClick={() => setModalOpen(true)}>
@@ -233,6 +252,11 @@ export default function ApplicationDetailClient({ application: initialApp, statu
                 )}
             </div>
 
+            {/* Video Interview Submissions */}
+            {invitations.length > 0 && (
+                <InterviewReviewSection invitations={invitations} userRole={userRole} />
+            )}
+
             {/* Status History */}
             <div className="card">
                 <p className="detail-section-title" style={{ marginBottom: 20 }}>Status History</p>
@@ -265,6 +289,18 @@ export default function ApplicationDetailClient({ application: initialApp, statu
                     currentStatus={app.status}
                     onClose={() => setModalOpen(false)}
                     onSuccess={handleSuccess}
+                />
+            )}
+
+            {inviteModalOpen && (
+                <InterviewInviteModal
+                    applicationId={app.id}
+                    applicantName={app.full_name}
+                    onClose={() => setInviteModalOpen(false)}
+                    onSuccess={() => {
+                        setApp(prev => ({ ...prev, status: 'interview_scheduled' }));
+                        window.location.reload();
+                    }}
                 />
             )}
         </>

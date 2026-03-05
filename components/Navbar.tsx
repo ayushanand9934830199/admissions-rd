@@ -42,7 +42,10 @@ export default function Navbar({ userName, role }: NavbarProps) {
                     <>
                         <Link href="/admin/decisions" className="btn btn-ghost btn-sm">🏛 decisions</Link>
                         {(role === 'admin' || role === 'admissions_head') && (
-                            <Link href="/admin/email-templates" className="btn btn-ghost btn-sm">📧 templates</Link>
+                            <>
+                                <Link href="/admin/email-templates" className="btn btn-ghost btn-sm">📧 emails</Link>
+                                <Link href="/admin/interviews" className="btn btn-ghost btn-sm">🎥 interviews</Link>
+                            </>
                         )}
                         {role === 'admin' && (
                             <>

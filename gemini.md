@@ -65,7 +65,7 @@ Core application record submitted by an applicant.
 }
 ```
 
-#### `status_updates`
+### `status_updates`
 Audit trail of all status changes made by admissions managers.
 ```json
 {
@@ -76,6 +76,68 @@ Audit trail of all status changes made by admissions managers.
   "message": "text (custom message sent to applicant)",
   "sent_by": "uuid (FK → profiles.id)",
   "sent_at": "timestamptz (default: now())"
+}
+```
+
+#### `interview_templates`
+Stores reusable sets of video interview questions.
+```json
+{
+  "id": "uuid (PK)",
+  "title": "text",
+  "created_by": "uuid (FK → profiles.id)",
+  "created_at": "timestamptz"
+}
+```
+
+#### `interview_questions`
+Specific questions grouped under a template.
+```json
+{
+  "id": "uuid (PK)",
+  "template_id": "uuid (FK → interview_templates.id)",
+  "question_text": "text",
+  "time_limit_seconds": "integer",
+  "order": "integer"
+}
+```
+
+#### `interview_invitations`
+Invitations sent to applicants for specific applications and templates.
+```json
+{
+  "id": "uuid (PK, unique link identifier)",
+  "application_id": "uuid (FK → applications.id)",
+  "template_id": "uuid (FK → interview_templates.id)",
+  "status": "text (enum: 'pending' | 'completed' | 'expired') default: 'pending'",
+  "invited_by": "uuid (FK → profiles.id)",
+  "invited_at": "timestamptz (default: now())"
+}
+```
+
+#### `video_submissions`
+Individual videos submitted by an applicant per question.
+```json
+{
+  "id": "uuid (PK)",
+  "invitation_id": "uuid (FK → interview_invitations.id)",
+  "question_id": "uuid (FK → interview_questions.id)",
+  "drive_file_id": "text",
+  "drive_file_url": "text",
+  "submitted_at": "timestamptz"
+}
+```
+
+#### `interview_feedback`
+Reviewer feedback and rating on a video submission.
+```json
+{
+  "id": "uuid (PK)",
+  "submission_id": "uuid (FK → video_submissions.id)",
+  "reviewer_id": "uuid (FK → profiles.id)",
+  "feedback_text": "text",
+  "rating": "integer",
+  "created_at": "timestamptz"
 }
 ```
 
