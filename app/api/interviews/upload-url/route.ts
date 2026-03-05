@@ -29,7 +29,10 @@ export async function POST(req: Request) {
             .eq('id', invitationId)
             .single();
 
-        if (!invite || invite.applications.applicant_id !== user.id) {
+        const apps: any = invite?.applications;
+        const applicantId = Array.isArray(apps) ? apps[0]?.applicant_id : apps?.applicant_id;
+
+        if (!invite || applicantId !== user.id) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
