@@ -23,6 +23,9 @@ export default async function InterviewPortalPage({ params }: { params: Promise<
 
     if (!invitation) notFound();
 
+    const apps: any = invitation.applications;
+    const application = Array.isArray(apps) ? apps[0] : apps;
+
     if (invitation.status === 'completed') {
         return (
             <div className="page-wrapper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#E8E6D9' }}>
@@ -67,8 +70,8 @@ export default async function InterviewPortalPage({ params }: { params: Promise<
                         <p style={{ margin: '8px 0 0', opacity: 0.7, fontSize: 14 }}>admissions interview</p>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                        <p style={{ margin: 0, fontWeight: 600 }}>{invitation.applications?.full_name}</p>
-                        <p style={{ margin: '4px 0 0', opacity: 0.7, fontSize: 13 }}>{invitation.applications?.program}</p>
+                        <p style={{ margin: 0, fontWeight: 600 }}>{application?.full_name}</p>
+                        <p style={{ margin: '4px 0 0', opacity: 0.7, fontSize: 13 }}>{application?.program}</p>
                     </div>
                 </header>
 
