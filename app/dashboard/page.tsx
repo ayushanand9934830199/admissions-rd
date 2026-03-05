@@ -49,7 +49,10 @@ export default async function DashboardPage() {
 
     const { data: applications } = await supabase
         .from('applications')
-        .select('*')
+        .select(`
+            *,
+            interview_invitations ( id, status, invited_at )
+        `)
         .eq('applicant_id', user.id)
         .eq('is_deleted', false)
         .order('submitted_at', { ascending: false });
@@ -90,14 +93,25 @@ export default async function DashboardPage() {
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
                                     {app.status === 'interview_scheduled' && (
-                                        <a
-                                            href="https://www.restlessdreamers.in/vid-int"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="btn btn-video btn-sm"
-                                        >
-                                            🎥 Join Interview
-                                        </a>
+                                        (() => {
+                                            const activeInvite = Array.isArray(app.interview_invitations)
+                                                ? app.interview_invitations.sort((a: any, b: any) => new Date(b.invited_at).getTime() - new Date(a.invited_at).getTime())[0]
+                                                : app.interview_invitations;
+
+                                            const inviteUrl = activeInvite?.id
+                                                ? `/interview/${activeInvite.id}`
+                                                : 'https://www.restlessdreamers.in/vid-int';
+
+                                            return (
+                                                <Link
+                                                    href={inviteUrl}
+                                                    className="btn btn-video btn-sm"
+                                                    target={activeInvite?.id ? undefined : "_blank"}
+                                                >
+                                                    🎥 Join Interview
+                                                </Link>
+                                            );
+                                        })()
                                     )}
                                     {DECISION_PAGE[app.status] && (
                                         <Link
