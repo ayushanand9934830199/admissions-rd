@@ -80,8 +80,15 @@ export default function InterviewRecorder({ invitationId, questions }: Props) {
         const stream = videoRef.current.srcObject as MediaStream;
 
         // Find supported mime type
-        const types = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
+        const types = [
+            'video/webm;codecs=vp9,opus',
+            'video/webm;codecs=vp8,opus',
+            'video/webm',
+            'video/mp4'
+        ];
         const supportedType = types.find(type => MediaRecorder.isTypeSupported(type));
+
+        console.log('🎙️ Selected MimeType:', supportedType);
 
         if (!supportedType) {
             toast.error('No supported video recording format found in your browser.');
@@ -94,24 +101,28 @@ export default function InterviewRecorder({ invitationId, questions }: Props) {
 
         mediaRecorder.ondataavailable = e => {
             if (e.data && e.data.size > 0) {
+                console.log('📦 Chunk captured:', e.data.size, 'bytes');
                 chunksRef.current.push(e.data);
             }
         };
 
         mediaRecorder.onstop = () => {
+            console.log('⏹️ Recording stopped. Final chunks:', chunksRef.current.length);
             // small delay to ensure all chunks are processed
-            setTimeout(handleUpload, 200);
+            setTimeout(handleUpload, 300);
         };
 
         // request data every second to keep chunks flowing
         mediaRecorder.start(1000);
         setStatus('recording');
         setTimeRemaining(currentQuestion.timeLimit);
+        console.log('🔴 Recording started');
     };
 
     const stopRecording = () => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-            mediaRecorderRef.current.requestData(); // Get any final data
+            console.log('🛑 Manual stop requested');
+            mediaRecorderRef.current.requestData(); // Force any final data
             mediaRecorderRef.current.stop();
         }
     };
