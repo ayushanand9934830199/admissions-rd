@@ -25,6 +25,8 @@ export default function RegisterPage() {
         setError('');
         if (form.password !== form.confirm_password) { setError('Passwords do not match.'); return; }
         if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+        if (!form.whatsapp.trim()) { setError('WhatsApp Number is required.'); return; }
+        if (!form.linkedin_url.trim()) { setError('LinkedIn Profile URL is required.'); return; }
         setLoading(true);
 
         const full_name = `${form.first_name.trim()} ${form.last_name.trim()}`.trim();
@@ -94,8 +96,8 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="form-group">
-                        <label className="form-label">LinkedIn Profile URL</label>
-                        <input type="url" className="form-input" placeholder="https://linkedin.com/in/yourname" value={form.linkedin_url} onChange={e => update('linkedin_url', e.target.value)} />
+                        <label className="form-label">LinkedIn Profile URL *</label>
+                        <input type="url" className="form-input" placeholder="https://linkedin.com/in/yourname" value={form.linkedin_url} onChange={e => update('linkedin_url', e.target.value)} required />
                     </div>
 
                     <div className="form-grid-2">
