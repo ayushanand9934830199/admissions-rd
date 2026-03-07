@@ -38,7 +38,7 @@ export default function ApplyPage() {
     const router = useRouter();
     const supabaseRef = useRef(createClient());
     const supabase = supabaseRef.current;
-    const [profile, setProfile] = useState<{ full_name: string; email: string; whatsapp?: string; id: string } | null>(null);
+    const [profile, setProfile] = useState<{ full_name: string; email: string; whatsapp?: string; linkedin_url?: string; id: string } | null>(null);
     const [form, setForm] = useState({ answer_1: '', answer_2: '', answer_3: '' });
     const [loading, setLoading] = useState(false);
     const [hasApplied, setHasApplied] = useState(false);
@@ -75,6 +75,8 @@ export default function ApplyPage() {
             full_name: profile!.full_name,
             email: profile!.email,
             phone: profile!.whatsapp || '',
+            whatsapp: profile!.whatsapp || '',
+            linkedin_url: profile!.linkedin_url || '',
             program: PROGRAM,
             date_of_birth: null,
             statement_of_purpose: null,

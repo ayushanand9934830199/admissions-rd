@@ -47,17 +47,6 @@ export default function RegisterPage() {
 
         if (error) { setError(error.message); setLoading(false); return; }
 
-        // Update profile with extra fields after signup
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            await supabase.from('profiles').update({
-                first_name: form.first_name.trim(),
-                last_name: form.last_name.trim(),
-                whatsapp: form.whatsapp.trim(),
-                linkedin_url: form.linkedin_url.trim(),
-            }).eq('id', user.id);
-        }
-
         toast.success('account created! check your email to confirm, or sign in directly.');
         router.push('/login');
     }
